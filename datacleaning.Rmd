@@ -1,0 +1,115 @@
+---
+title: "CDCstuff"
+author: "Eric Cavanna"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r starts, include=F}
+start.time <- Sys.time()
+library(dplyr)
+library(psych) #for KMO
+library(GPArotation)
+library(tidyverse)
+library(ggplot2)
+```
+
+
+```{r getData}
+#imports data
+cdc = read.csv("C:/Users/Ecava/OneDrive/Desktop/research/SVI2020_US.csv", header = TRUE)
+
+#names of cols to keep
+colsKeep = c("STATE","ST_ABBR","COUNTY","FIPS", "E_TOTPOP", "EP_POV150", "EP_UNEMP", "EP_HBURD","EP_NOHSDP", "EP_UNINSUR", "EP_AGE65", "EP_AGE17",  "EP_DISABL", "EP_SNGPNT", "EP_LIMENG","EP_MINRTY", "EP_MUNIT", "EP_MOBILE","EP_CROWD",  "EP_NOVEH","EP_GROUPQ","RPL_THEMES")
+
+#imports zip information
+zips = read.csv("C:/Users/Ecava/OneDrive/Desktop/research/ZIP_TRACT_122020.csv", header = TRUE)
+
+#combines it
+cdcFul <- left_join(cdc[,colsKeep],zips[,1:3],by = c("FIPS" = "TRACT"))
+```
+
+```{r dataCleaning}
+#remove tracts with out populaition
+cdcFul <- cdcFul[cdcFul$E_TOTPOP != 0 
+             & cdcFul$RPL_THEMES != -999
+             & cdcFul$RES_RATIO != 0,]
+
+#removes NAs
+cdcFul <- na.omit(cdcFul)
+```
+
+```{r CompleteZips}
+#sums res ratio for each zip
+cdcZip <- cdcFul %>% group_by(ZIP) %>% summarise(Freq = sum(RES_RATIO))
+
+#finds zips with high (>80%) completeness
+zip <- subset(cdcZip, Freq >= 0.8)
+
+#checks to make sure there is enough
+nrow(zip)/nrow(cdcZip)
+
+#there is enough info so we can used just the complete ones
+zip <- unique(zip$ZIP)
+cdcSub <- subset(cdcFul,ZIP %in% zip)
+
+cdcUnik <- distinct(cdcSub,FIPS,.keep_all = T)
+dim(cdcUnik)
+
+hist(cdcUnik$RPL_THEMES, breaks = 100, xlab = "CDC SVI", main = NA)
+```
+
+```{r FactorAnalysisAssumpitons}
+#Kaiser-meyer-olkin test
+cdcRedu <- cdcUnik[,5:21]
+cdcCorMatrix <- cor(cdcRedu)
+kmo <- KMO(r = cdcCorMatrix)
+kmo$MSA #this is >> .6, can do FA
+
+#calc and plots eigen vals
+cdcFA <- fa(cdcRedu,nfactors = 5, rotate = "none")
+plot(cdcFA$e.values, ylab = "Eigen vals")
+
+#scree plot, Im not sure why this is necessary??
+#parallel <- fa.parallel(cdcRedu)
+```
+
+```{r FactorAnalysis}
+cdcFA <- fa(cdcRedu, nfactors = 1,
+            fm = "pa", max.iter = 100,
+            rotation = "promax")
+
+# % var explained by factor
+ss <- colSums(cdcFA$Structure^2)
+ss/length(cdcFA$communality)
+
+#joins scores to bigger data base
+scoresFA <- cdcFA$scores
+tractFA <- cbind(cdcUnik,scoresFA)[,c("FIPS","PA1")]
+cdcFAtract <- left_join(cdcSub, tractFA, by="FIPS")
+
+#adds name to last column
+names(cdcFAtract)[length(names(cdcFAtract))] <- paste("FULL","PA1",sep = "_")
+
+#pearson corelation test
+cor.test(scoresFA,cdcUnik$RPL_THEMES, method = "pearson")
+
+#pretty picture
+hist(scoresFA,breaks = 100)
+```
+
+
+# make the percentiles for each state
+# make histograms stratified by state
+# get urban rural??
+
+```{r writeData}
+write.csv(cdcUnik, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\cdcUnik.csv", row.names=FALSE)
+write.csv(cdcFAtract, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\cdcFAtract.csv", row.names=FALSE)
+```
+
+```{r endTime}
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+```
