@@ -5,6 +5,8 @@ date: "`r Sys.Date()`"
 output: word_document
 ---
 
+# just trying things
+
 ```{r starts, include=F}
 start.time <- Sys.time()
 library(dplyr)
