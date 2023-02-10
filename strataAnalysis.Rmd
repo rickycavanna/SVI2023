@@ -5,8 +5,6 @@ date: "`r Sys.Date()`"
 output: word_document
 ---
 
-# just trying things
-
 ```{r starts, include=F}
 start.time <- Sys.time()
 library(dplyr)
@@ -19,8 +17,8 @@ library(formattable)
 ```
 
 ```{r getData}
-cdcUnik <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcUnik.csv", header = TRUE)
-cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcFAtract.csv", header = TRUE)
+cdcUnik <- read.csv("C:/Users/Ecava/OneDrive/Desktop/Version Control/cdcUnik.csv", header = TRUE)
+cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/Version Control/cdcFAtract.csv", header = TRUE)
 ```
 
 ```{r fxnBuil}
@@ -178,6 +176,25 @@ names(withStrata)[length(names(withStrata))] <- paste(strat,"PA1",sep = "_")
 Histo_By_Strat(withStrata,"STATE","FULL_PA1","STATE_PA1") #compares state to country FA
 Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1") #compares state FA to CDC country wide
 ```
+
+```{r uniqueness}
+#idk why this isnt working, is the picture too small???
+dataa <- byLine$uniqness_by_var[2:4,2:4]
+numCol <- ncol(dataa)
+numRow <- nrow(dataa)
+x = 1:numCol
+y = 1:numRow
+centers <- expand.grid(y,x)
+#make the plot margins a little bigger
+image(x, y, t(dataa),
+      col = c(rgb(0,0,1,0.3),rgb(1,0,0,0.3), rgb(1,1,0,0.3)),
+      breaks = c(0, 25, 50, 100),
+      zlim = c(.25,.75)
+      )
+
+text(centers[,2], centers[,1], c(byLine$uniqness_by_var), col= "black")
+```
+
 
 ```{r endTime}
 end.time <- Sys.time()
