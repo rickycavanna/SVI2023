@@ -17,8 +17,8 @@ library(formattable)
 ```
 
 ```{r getData}
-cdcUnik <- read.csv("C:/Users/Ecava/OneDrive/Desktop/Version Control/cdcUnik.csv", header = TRUE)
-cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/Version Control/cdcFAtract.csv", header = TRUE)
+cdcUnik <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcUnik.csv", header = TRUE)
+cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcFAtract.csv", header = TRUE)
 ```
 
 ```{r fxnBuil}
@@ -178,7 +178,7 @@ Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1") #compares state F
 ```
 
 ```{r uniqueness}
-#idk why this isnt working, is the picture too small???
+#idk why this isnt working, is the picture too big???
 dataa <- byLine$uniqness_by_var[2:4,2:4]
 numCol <- ncol(dataa)
 numRow <- nrow(dataa)

@@ -17,13 +17,13 @@ library(ggplot2)
 
 ```{r getData}
 #imports data
-cdc = read.csv("C:/Users/Ecava/OneDrive/Desktop/Version Control/SVI2020_US.csv", header = TRUE)
+cdc = read.csv("C:/Users/Ecava/OneDrive/Desktop/research/SVI2020_US.csv", header = TRUE)
 
 #names of cols to keep
 colsKeep = c("STATE","ST_ABBR","COUNTY","FIPS", "E_TOTPOP", "EP_POV150", "EP_UNEMP", "EP_HBURD","EP_NOHSDP", "EP_UNINSUR", "EP_AGE65", "EP_AGE17",  "EP_DISABL", "EP_SNGPNT", "EP_LIMENG","EP_MINRTY", "EP_MUNIT", "EP_MOBILE","EP_CROWD",  "EP_NOVEH","EP_GROUPQ","RPL_THEMES")
 
 #imports zip information
-zips = read.csv("C:/Users/Ecava/OneDrive/Desktop/Version Control/ZIP_TRACT_122020.csv", header = TRUE)
+zips = read.csv("C:/Users/Ecava/OneDrive/Desktop/research/ZIP_TRACT_122020.csv", header = TRUE)
 
 #combines it
 cdcFul <- left_join(cdc[,colsKeep],zips[,1:3],by = c("FIPS" = "TRACT"))
@@ -104,8 +104,8 @@ hist(scoresFA,breaks = 100)
 # get urban rural??
 
 ```{r writeData}
-write.csv(cdcUnik, "C:\\Users\\Ecava\\OneDrive\\Desktop\\Version Control\\cdcUnik.csv", row.names=FALSE)
-write.csv(cdcFAtract, "C:\\Users\\Ecava\\OneDrive\\Desktop\\Version Control\\cdcFAtract.csv", row.names=FALSE)
+write.csv(cdcUnik, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\cdcUnik.csv", row.names=FALSE)
+write.csv(cdcFAtract, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\cdcFAtract.csv", row.names=FALSE)
 ```
 
 ```{r endTime}
