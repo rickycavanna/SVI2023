@@ -14,6 +14,8 @@ library(tidyverse)
 library(ggplot2)
 library(data.table) #for table formatting
 library(formattable)
+
+library(reshape) #for table transformation with ggplot
 ```
 
 ```{r getData}
@@ -105,21 +107,23 @@ Histo_By_Strat <- function(data,colNam,colOrig,colStrat){
        fill=c(rgb(0,0,1,0.2), rgb(1,0,0,0.2)))
     
     pectSame <- c()
-    for(i in seq(from=5, to=100, by=5)){
-      pct <- top_Precentage(subCat,colOrig,colStrat,i)
+    for(j in seq(from=5, to=100, by=5)){
+      pct <- top_Precentage(subCat,colOrig,colStrat,j)
       pectSame <- rbind(pectSame,pct)
     }
     
     #this makes plot of how much overlap using counts starting at the top
     top_cownt(subCat,colOrig,colStrat)
     
+    #makes scatter plor of the two columes scaled from 0->1
+    #and fits trend line and reference line
     print(ggplot(subCat, aes(scale0_1(subCat[,colOrig]), scale0_1(subCat[,colStrat]))) +
       geom_point(shape=18, color="blue") +
       geom_abline(intercept = 0, slope = 1, color="green") +
-      geom_smooth(method=lm, se=T, color="darkred", fill="black")) + #add linear trend line and Std error
-      ggtitle(i) + # for the main title
+      geom_smooth(method=lm, se=T, color="darkred", fill="black") + #add linear trend line and Std error
+      ggtitle(paste(i, colOrig, "x", colStrat)) + # for the main title
       xlab(colOrig) + # for the x axis label
-      ylab(colStrat) # for the y axis label 
+      ylab(colStrat)) # for the y axis label 
       
   }
 }
@@ -151,10 +155,6 @@ top_cownt <- function(data,colOrig,colStrat){
 
 #scales from 0-1
 scale0_1 <- function(x){(x-min(x))/(max(x)-min(x))}
-
-#yy <- FA_By_Component(cdcUnik,"STATE")
-#yy <- KMO_By_Component(cdcUnik,"STATE")
-#Histo_By_Strat(withStrata,"STATE","FULL_PA1","STATE_PA1")
 ```
 
 
@@ -166,33 +166,37 @@ withStrata <- left_join(cdcFAtract, byLine$Strat_FA, by="FIPS") #adds FA to big 
 #adds name of strata to the last column
 names(withStrata)[length(names(withStrata))] <- paste(strat,"PA1",sep = "_")
 
-
 #write uniqueness loadings to a location
 #write.csv(byLine$uniqness_by_var, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\coolstuff.csv", row.names=FALSE)
 ```
 
 ```{r prettyPictures}
 # makes pretty pictures for each strata identified
+dataa <- withStrata[,c()] #remove cols with high correlation and run again
 Histo_By_Strat(withStrata,"STATE","FULL_PA1","STATE_PA1") #compares state to country FA
 Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1") #compares state FA to CDC country wide
 ```
 
-```{r uniqueness}
-#idk why this isnt working, is the picture too big???
-dataa <- byLine$uniqness_by_var[2:4,2:4]
-numCol <- ncol(dataa)
-numRow <- nrow(dataa)
-x = 1:numCol
-y = 1:numRow
-centers <- expand.grid(y,x)
-#make the plot margins a little bigger
-image(x, y, t(dataa),
-      col = c(rgb(0,0,1,0.3),rgb(1,0,0,0.3), rgb(1,1,0,0.3)),
-      breaks = c(0, 25, 50, 100),
-      zlim = c(.25,.75)
-      )
+```{r heat_map}
+# Transform the matrix in long format
+df <- melt(byLine$uniqness_by_var[1:26,])
+colnames(df) <- c("state", "cols", "value")
 
-text(centers[,2], centers[,1], c(byLine$uniqness_by_var), col= "black")
+#plots out 
+ggplot(df, aes(x = state, y = cols, fill = value)) +
+  geom_tile() +
+  coord_fixed()
+
+##same as above, just second half
+# Transform the matrix in long format
+df <- melt(byLine$uniqness_by_var[27:51,])
+colnames(df) <- c("state", "cols", "value")
+
+#plots out 
+ggplot(df, aes(x = state, y = cols, fill = value)) +
+  geom_tile() +
+  coord_fixed()
+  
 ```
 
 
