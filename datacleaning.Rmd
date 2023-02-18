@@ -70,7 +70,6 @@ kmo$MSA #this is >> .6, can do FA
 cdcFA <- fa(cdcRedu,nfactors = 5, rotate = "none")
 plot(cdcFA$e.values, ylab = "Eigen vals")
 
-#scree plot, Im not sure why this is necessary??
 #parallel <- fa.parallel(cdcRedu)
 ```
 
