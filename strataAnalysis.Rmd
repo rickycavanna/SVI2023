@@ -172,7 +172,7 @@ names(withStrata)[length(names(withStrata))] <- paste(strat,"PA1",sep = "_")
 ```{r prettyPictures}
 # makes pretty pictures for each strata identified
 dataa <- withStrata[,c()] #remove cols with high correlation and run again
-Histo_By_Strat(withStrata,"STATE","FULL_PA1","STATE_PA1") #compares state to country FA
+#Histo_By_Strat(withStrata,"STATE","FULL_PA1","STATE_PA1") #compares state to country FA
 Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1") #compares state FA to CDC country wide
 ```
 
@@ -198,12 +198,21 @@ ggplot(df, aes(x = state, y = cols, fill = value)) +
   
 ```
 
-```{r reduced_mod}
+```{r reduced_mod, echo=F, eval=F}
+## i ran it with the reduced model with just a few cols, the result was basically the same
+## im leaaving it out to save on runtime, and since the results were insignificant and unremarkable
+
+
 #reduces stratus to only those with high unikness, and the id lines etc 
-reduced <- subset(withStrata,select = -c(E_TOTPOP,EP_UNEMP, EP_UNINSUR,	EP_AGE65,	EP_AGE17,	EP_DISABL,EP_SNGPNT, EP_MUNIT,	EP_MOBILE,EP_CROWD,	EP_GROUPQ))
+reduced <- subset(cdcUnik,select = -c(E_TOTPOP,EP_UNEMP, EP_UNINSUR,	EP_AGE65,	EP_AGE17,	EP_DISABL,EP_SNGPNT, EP_MUNIT,	EP_MOBILE,EP_CROWD,	EP_GROUPQ))
+
+byLine <- FA_By_Component(reduced, strat,5:10) #does analysis
+withStrataRed <- left_join(cdcFAtract, byLine$Strat_FA, by="FIPS") #adds FA to big dataframe
+#adds name of strata to the last column
+names(withStrataRed)[length(names(withStrataRed))] <- paste("HI","PA1",sep = "_")
 
 
-Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1")
+Histo_By_Strat(withStrataRed, "STATE", "RPL_THEMES", "HI_PA1")
 ```
 
 
