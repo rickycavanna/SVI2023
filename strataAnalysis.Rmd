@@ -14,13 +14,14 @@ library(tidyverse)
 library(ggplot2)
 library(data.table) #for table formatting
 library(formattable)
-
 library(reshape) #for table transformation with ggplot
 ```
 
 ```{r getData}
-cdcUnik <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcUnik.csv", header = TRUE)
+cdcUnikZip <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcUnik.csv", header = TRUE)
 cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcFAtract.csv", header = TRUE)
+cdcUnikCounty <- read.csv("C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\cdcUnikCounty.csv", header = TRUE)
+cdcUnik <- cdcUnikZip
 ```
 
 ```{r fxnBuil}
@@ -169,9 +170,9 @@ names(withStrata)[length(names(withStrata))] <- paste(strat,"PA1",sep = "_")
 #write.csv(byLine$uniqness_by_var, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\coolstuff.csv", row.names=FALSE)
 ```
 
+
 ```{r prettyPictures}
 # makes pretty pictures for each strata identified
-dataa <- withStrata[,c()] #remove cols with high correlation and run again
 #Histo_By_Strat(withStrata,"STATE","FULL_PA1","STATE_PA1") #compares state to country FA
 Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1") #compares state FA to CDC country wide
 ```
@@ -215,6 +216,48 @@ names(withStrataRed)[length(names(withStrataRed))] <- paste("HI","PA1",sep = "_"
 Histo_By_Strat(withStrataRed, "STATE", "RPL_THEMES", "HI_PA1")
 ```
 
+```{r rankFAs_complete}
+#this compares the national level FA vs the CDC SIV
+ggplot(withStrata, aes(x=rank(RPL_THEMES), y=rank(FULL_PA1))) +
+      geom_point(shape=18, color="lightgreen") +
+      geom_abline(intercept = 0, slope = 1, color="red") +
+      geom_smooth(method=lm, se=T, color="blue4", fill="black") +
+      ggtitle(paste("CDC SVI Ranks x national FA Ranks")) +
+      xlab(paste("CDC SVI complete")) + # for the x axis label
+      ylab(paste("National FA complete")) # for the y axis label
+
+#this compares the cumumulative state level FA vs the CDC SIV
+ggplot(withStrata, aes(x=rank(RPL_THEMES), y=rank(STATE_PA1))) +
+      geom_point(shape=18, color="lightgreen") +
+      geom_abline(intercept = 0, slope = 1, color="red") +
+      geom_smooth(method=lm, se=T, color="blue4", fill="black") +
+      ggtitle(paste("CDC SVI Ranks x State FA Ranks")) +
+      xlab(paste("CDC SVI complete")) + # for the x axis label
+      ylab(paste("STATE FA complete")) # for the y axis label
+```
+
+```{r rankFAstratByState}
+uneek <- unique(withStrata[["STATE"]])  #creates list to iterate thru
+plott <- c()
+corTable <- c()
+
+for(i in uneek){
+    subCat <- filter(withStrata,get("STATE") == i)
+    spearCor <- cor.test(x=rank(subCat$RPL_THEMES), y=rank(subCat$STATE_PA1), method = 'spearman')
+    corTable <- rbind(corTable, c(i,spearCor$statistic, spearCor$p.value))
+    print(ggplot(subCat, aes(x=rank(subCat$RPL_THEMES), y=rank(subCat$STATE_PA1))) +
+      geom_point(shape=18, color="lightgreen") +
+      geom_abline(intercept = 0, slope = 1, color="green") +
+      geom_smooth(method=lm, se=T, color="blue4", fill="black") +
+      ggtitle(paste(i, "CDC SVI Ranks x State FA Ranks")) +
+      xlab(paste("CDC SVI ", i)) + # for the x axis label
+      ylab(paste("STATE FA ", i)) + # for the y axis label
+      annotate("text", label= paste("the spearman correlation is: ", spearCor$statistic)))
+}
+corTable <- as.data.frame(corTable)
+corTable$S <- round(as.numeric(corTable$S),2)
+corTable$V3 <- round(as.numeric(corTable$V3),5)
+```
 
 ```{r endTime}
 end.time <- Sys.time()
