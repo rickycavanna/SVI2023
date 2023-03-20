@@ -120,7 +120,6 @@ hist(scoresFA,breaks = 100)
 
 # make the percentiles for each state
 # make histograms stratified by state
-# get urban rural??
 
 ```{r writeData}
 write.csv(cdcUnik, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\cdcUnik.csv", row.names=FALSE)
