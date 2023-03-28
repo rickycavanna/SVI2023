@@ -15,6 +15,8 @@ library(ggplot2)
 library(data.table) #for table formatting
 library(formattable)
 library(reshape) #for table transformation with ggplot
+library(maps)
+library(mapproj)
 ```
 
 ```{r getData, include=F}
@@ -179,10 +181,45 @@ names(withStrata)[length(names(withStrata))] <- paste(strat,"PA1",sep = "_")
 ```{r prettyPictures}
 # makes pretty pictures for each strata identified
 #Histo_By_Strat(withStrata,"STATE","FULL_PA1","STATE_PA1") #compares state to country FA
+
 Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1") #compares state FA to CDC country wide
 ```
 
-```{r heat_map_uniquness}
+```{r heat_map_loadings_full}
+FA <- fa(cdcUnik[,5:21], nfactors = 1, fm = "pa", max.iter = 100, rotation = "promax")
+
+# Transform the matrix in long format
+loadngs <- melt(FA$loadings[,1])
+colnames(loadngs) <- c("load")
+
+loadngs$rowss <- colnames(cdcUnik[,5:21])
+
+#plots out 
+ggplot(loadngs, aes(x = 1, y = rowss, fill = load)) +
+  geom_tile() +
+  coord_flip() + labs(x = "Loadings", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
+  scale_fill_gradient(low = "white", high = "red") +
+  scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
+```
+
+```{r heat_map_uniq_full}
+# Transform the matrix in long format
+loadngs <- melt(FA$uniquenesses)
+colnames(loadngs) <- c("load")
+
+loadngs$rowss <- colnames(cdcUnik[,5:21])
+
+#plots out 
+ggplot(loadngs, aes(x = 1, y = rowss, fill = load)) +
+  geom_tile() +
+  coord_flip() + labs(x = "Uniquness", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
+  scale_fill_gradient(low = "white", high = "blue") +
+  scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
+```
+
+```{r heat_map_uniquness_bystate}
 # Transform the matrix in long format
 df <- melt(byLine$uniqness_by_var)
 colnames(df) <- c("state", "cols", "value")
@@ -239,14 +276,24 @@ ggplot(withStrata, aes(x=rank(RPL_THEMES), y=rank(FULL_PA1))) +
       xlab(paste("CDC SVI complete")) + # for the x axis label
       ylab(paste("National FA complete")) # for the y axis label
 
-#this compares the cumumulative state level FA vs the CDC SIV
-ggplot(withStrata, aes(x=rank(RPL_THEMES), y=rank(STATE_PA1))) +
+#this compares the stratified state level FA vs the CDC SIV rankings
+stratStateRank <- c()
+
+for(i in unique(withStrata$STATE)){
+  subCat <- filter(withStrata,withStrata$STATE == i)
+  x <- rank(subCat$RPL_THEMES)
+  y <- rank(subCat$STATE_PA1)
+  stratStateRank <- as.data.frame(rbind(stratStateRank, cbind(x,y)))
+}
+
+
+ggplot(stratStateRank, aes(x=x, y= y)) +
       geom_point(shape=18, color="lightgreen") +
       geom_abline(intercept = 0, slope = 1, color="red") +
       geom_smooth(method=lm, se=T, color="blue4", fill="black") +
-      ggtitle(paste("CDC SVI Ranks x State FA Ranks")) +
-      xlab(paste("CDC SVI complete")) + # for the x axis label
-      ylab(paste("STATE FA complete")) # for the y axis label
+      ggtitle(paste("CDC SVI Ranks x State FA Ranks stratified by state")) +
+      xlab(paste("CDC SVI Rank")) + # for the x axis label
+      ylab(paste("STATE FA Rank")) # for the y axis label
 ```
 
 ```{r rankFAstratByState}
@@ -270,6 +317,46 @@ for(i in uneek){
 #need to clean this up?? wrong col names
 corTable <- as.data.frame(corTable)
 ```
+
+```{r pctSharedby_State}
+#create %overlap for each state
+perct <- 0.15
+region <- c()
+pct <- c()
+pctSharedbyState <- c()
+
+for(i in unique(withStrata$STATE)){
+    subCat <- filter(withStrata,get("STATE") == i)
+    lngth <- nrow(subCat) * perct
+    #selects top amount
+    topOrg <- subCat %>% arrange(desc(get("RPL_THEMES")))  %>% slice(1:lngth) %>% select(FIPS)
+    topStr <- subCat %>% arrange(desc(get("STATE_PA1"))) %>% slice(1:lngth) %>% select(FIPS)
+    #compares Fips from each to see the overlap
+    samect <- round(sum(topStr[,1] %in% topOrg[,1])/nrow(topStr), 3)
+    region <- rbind(region, i)
+    pct <- rbind(pct, samect)
+    }   
+
+pctSharedbyState <- cbind.data.frame(region =region,pct = pct)
+```
+
+```{r mappingCorelation}
+states <- map_data("state")
+colnames(pctSharedbyState) <- c("region","pct")
+pctSharedbyState$region <- tolower(pctSharedbyState$region)
+
+shared.geo <- merge(states,pctSharedbyState,by = "region")
+shared.geo <- shared.geo[order(shared.geo$order),]
+
+ggplot(shared.geo,aes(long, lat))+
+  geom_polygon(aes(group=group, fill= pct))+
+  coord_map() + scale_fill_gradient2(
+    low = "yellow", 
+    mid = "green", 
+    high = "blue",
+    midpoint = 0.5)
+```
+
 
 ```{r endTime}
 end.time <- Sys.time()
