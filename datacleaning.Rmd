@@ -52,9 +52,11 @@ zip <- subset(cdcZip, Freq >= 0.8)
 nrow(zip)/nrow(cdcZip)
 
 #there is enough info so we can used just the complete ones
+# aka removes duplicate zips
 zip <- unique(zip$ZIP)
 cdcSub <- subset(cdcFul,ZIP %in% zip)
 
+#only keeps unique values for each tract
 cdcUnik <- distinct(cdcSub,FIPS,.keep_all = T)
 dim(cdcUnik)
 

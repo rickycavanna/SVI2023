@@ -316,17 +316,18 @@ for(i in uneek){
 
 #need to clean this up?? wrong col names
 corTable <- as.data.frame(corTable)
+nationaCor <- cor.test(x=rank(withStrata$RPL_THEMES), y=rank(withStrata$STATE_PA1), method = 'spearman')
 ```
 
 ```{r pctSharedby_State}
 #create %overlap for each state
-perct <- 0.15
+perct <- 0.10
 region <- c()
 pct <- c()
 pctSharedbyState <- c()
 
 for(i in unique(withStrata$STATE)){
-    subCat <- filter(withStrata,get("STATE") == i)
+    subCat <-withStrata %>% filter(withStrata$STATE == i)
     lngth <- nrow(subCat) * perct
     #selects top amount
     topOrg <- subCat %>% arrange(desc(get("RPL_THEMES")))  %>% slice(1:lngth) %>% select(FIPS)
@@ -338,6 +339,7 @@ for(i in unique(withStrata$STATE)){
     }   
 
 pctSharedbyState <- cbind.data.frame(region =region,pct = pct)
+summary(pctSharedbyState$pct)
 ```
 
 ```{r mappingCorelation}
@@ -355,6 +357,19 @@ ggplot(shared.geo,aes(long, lat))+
     mid = "green", 
     high = "blue",
     midpoint = 0.5)
+```
+```{r for_Abstract}
+#percent shared across all states:
+top_Precentage(withStrata,"FULL_PA1","RPL_THEMES",10)
+top_cownt()
+
+#lowest ranked fips
+chunk <- withStrata %>% arrange(desc(get("FULL_PA1"))) %>% slice(1:9705)
+tbl <- as.data.frame(table(chunk$STATE))
+tblfull <- as.data.frame(table(withStrata$STATE))
+yy <- inner_join(tbl, tblfull, by = "Var1")
+yy$pct <- yy$Freq.x/yy$Freq.y
+yy$pctTotal <- yy$Freq.x/9705
 ```
 
 
