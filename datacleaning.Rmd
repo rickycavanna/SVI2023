@@ -63,25 +63,6 @@ dim(cdcUnik)
 hist(cdcUnik$RPL_THEMES, breaks = 100, xlab = "CDC SVI", main = NA)
 ```
 
-```{r CompleteCountys}
-#sums res ratio for each county from the origial data set
-cdcCounty <- cdcFul %>% group_by(COUNTY) %>% summarise(Freq = sum(RES_RATIO))
-
-#finds counties with high (>80%) completeness, this can be adjusted
-#this just seemed like a good level with high retension
-county <- subset(cdcCounty, Freq >= 0.8)
-
-#checks to make sure there is enough
-nrow(county)/nrow(cdcCounty)
-
-#there is enough info so we can used just the complete ones
-county <- unique(county$COUNTY)
-cdcSubCounty <- subset(cdcFul,COUNTY %in% county)
-
-cdcUnikCounty <- distinct(cdcSubCounty,COUNTY,.keep_all = T)
-dim(cdcUnikCounty)
-```
-
 
 ```{r FactorAnalysisAssumpitons}
 #Kaiser-meyer-olkin test
