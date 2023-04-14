@@ -20,10 +20,17 @@ library(mapproj)
 ```
 
 ```{r getData, include=F}
-cdcUnikZip <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcUnik.csv", header = TRUE)
-cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcFAtract.csv", header = TRUE)
-cdcUnikCounty <- read.csv("C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\cdcUnikCounty.csv", header = TRUE)
-cdcUnik <- cdcUnikZip
+#change this to false to just run it on zips level!!
+withFIPS <- TRUE
+if(withFIPS == F){
+    #with zips
+    cdcUnik <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcUnik.csv", header = TRUE)
+    cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcFAtract.csv", header = TRUE)
+} else {
+    #with all fips, the longest data set
+    cdcUnik <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcFul_FIPS.csv", header = TRUE)
+    cdcFAtract <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/cdcFAtract_FIPS.csv", header = TRUE)
+}
 ```
 
 ```{r fxnBuil, include=F}
@@ -215,7 +222,7 @@ ggplot(loadngs, aes(x = 1, y = rowss, fill = load)) +
   geom_tile() +
   coord_flip() + labs(x = "Uniquness", y =  "Parameters from Census") +
   theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
-  scale_fill_gradient(low = "white", high = "blue") +
+  scale_fill_gradient(low = "blue", high = "white") +
   scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
 ```
 
@@ -361,7 +368,6 @@ ggplot(shared.geo,aes(long, lat))+
 ```{r for_Abstract}
 #percent shared across all states:
 top_Precentage(withStrata,"FULL_PA1","RPL_THEMES",10)
-top_cownt()
 
 #lowest ranked fips
 chunk <- withStrata %>% arrange(desc(get("FULL_PA1"))) %>% slice(1:9705)

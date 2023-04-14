@@ -42,6 +42,7 @@ cdcFul <- na.omit(cdcFul)
 ```
 
 ```{r CompleteZips}
+#possible comment out #47-#52
 #sums res ratio for each zip
 cdcZip <- cdcFul %>% group_by(ZIP) %>% summarise(Freq = sum(RES_RATIO))
 
