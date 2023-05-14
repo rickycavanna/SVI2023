@@ -17,6 +17,7 @@ library(formattable)
 library(reshape) #for table transformation with ggplot
 library(maps)
 library(mapproj)
+library(knitr)
 ```
 
 ```{r getData, include=F}
@@ -181,9 +182,15 @@ byLine <- FA_By_Component(cdcUnik, strat,5:21) #does analysis
 withStrata <- left_join(cdcFAtract, byLine$Strat_FA, by="FIPS") #adds FA to big dataframe
 #adds name of strata to the last column
 names(withStrata)[length(names(withStrata))] <- paste(strat,"PA1",sep = "_")
-
 ```
 
+```{r kmo_stuff}
+strat <- "STATE" #sets strata
+#gets kmo stratified by state
+kmos <- as.data.frame(KMO_By_Component(cdcUnik, strat))
+kmos$KMO <- round(as.numeric(kmos$KMO),4)
+kmos %>%  kable(caption = "Table of KMO stratified by State")
+```
 
 ```{r prettyPictures}
 # makes pretty pictures for each strata identified
@@ -224,6 +231,13 @@ ggplot(loadngs, aes(x = 1, y = rowss, fill = load)) +
   theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
   scale_fill_gradient(low = "blue", high = "white") +
   scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
+
+loadingsTable <- c()
+loadingsTable$loadings <- melt(FA$loadings[,1])
+loadingsTable$uniqueness <- melt(FA$uniquenesses)
+loadingsTable <- as.data.frame(loadingsTable)
+colnames(loadingsTable) <- c("Loadings","Uniqueness")
+loadingsTable %>% kable(caption = "Uniquness by varible on a national level")
 ```
 
 ```{r heat_map_uniquness_bystate}
@@ -239,6 +253,8 @@ ggplot(df, aes(x = state, y = cols, fill = value)) +
   scale_fill_gradient(low = "blue", high = "white") +
   scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
   
+
+byLine[["uniqness_by_var"]] %>% kable(caption = "Uniquness by varible and stratified by State")
 ```
 
 ```{r heat_map_uniquness}
@@ -253,7 +269,8 @@ ggplot(df, aes(x = state, y = cols, fill = value)) +
   theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
   scale_fill_gradient(low = "white", high = "red") +
   scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
-  
+
+byLine[["loadings_by_var"]] %>% kable(caption = "Loadings by varible and stratified by State")
 ```
 
 ```{r reduced_mod, echo=F, eval=F}
@@ -331,6 +348,7 @@ nationaCor <- cor.test(x=rank(withStrata$RPL_THEMES), y=rank(withStrata$STATE_PA
 perct <- 0.10
 region <- c()
 pct <- c()
+pctfull <- c()
 pctSharedbyState <- c()
 
 for(i in unique(withStrata$STATE)){
@@ -339,17 +357,40 @@ for(i in unique(withStrata$STATE)){
     #selects top amount
     topOrg <- subCat %>% arrange(desc(get("RPL_THEMES")))  %>% slice(1:lngth) %>% select(FIPS)
     topStr <- subCat %>% arrange(desc(get("STATE_PA1"))) %>% slice(1:lngth) %>% select(FIPS)
+    topStrFul <- subCat %>% arrange(desc(get("FULL_PA1"))) %>% slice(1:lngth) %>% select(FIPS)
     #compares Fips from each to see the overlap
     samect <- round(sum(topStr[,1] %in% topOrg[,1])/nrow(topStr), 3)
+    samectfull <- round(sum(topStrFul[,1] %in% topOrg[,1])/nrow(topStr), 3)
     region <- rbind(region, i)
     pct <- rbind(pct, samect)
+    pctfull <- rbind(pctfull, samectfull)
     }   
 
-pctSharedbyState <- cbind.data.frame(region =region,pct = pct)
-summary(pctSharedbyState$pct)
+pctSharedbyStateAll <- cbind.data.frame(region = region,pct = pct, pctfull = pctfull)
+summary(pctSharedbyStateAll$pct)
+pctSharedbyStateAll %>% kable(caption = "The percentage of overlap of the top 10% between SVI and the FA")
 ```
 
-```{r mappingCorelation}
+```{r mappingCorelation_state_level}
+pctSharedbyState <- pctSharedbyStateAll[,1:2]
+states <- map_data("state")
+colnames(pctSharedbyState) <- c("region","pct")
+pctSharedbyState$region <- tolower(pctSharedbyState$region)
+
+shared.geo <- merge(states,pctSharedbyState,by = "region")
+shared.geo <- shared.geo[order(shared.geo$order),]
+
+ggplot(shared.geo,aes(long, lat))+
+  geom_polygon(aes(group=group, fill= pct))+
+  coord_map() + scale_fill_gradient2(
+    low = "yellow", 
+    mid = "green", 
+    high = "blue",
+    midpoint = 0.5)
+```
+
+```{r mappingCorelation_national_level}
+pctSharedbyState <- pctSharedbyStateAll[,c(1,3)]
 states <- map_data("state")
 colnames(pctSharedbyState) <- c("region","pct")
 pctSharedbyState$region <- tolower(pctSharedbyState$region)
@@ -380,6 +421,12 @@ yy$pctTotal <- yy$Freq.x/9705
 
 
 ```{r endTime}
+#write out the FA results
+withFIPS <- TRUE
+if(withFIPS == T){
+  write.csv(withStrata, "C:\\Users\\Ecava\\OneDrive\\Desktop\\research\\withStrata.csv", row.names=FALSE)}
+
+
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
