@@ -45,7 +45,7 @@ length(unique(cdcFul$FIPS))
 #only keeps unique values for each tract
 dim(cdcFul)
 
-hist(cdcFul$RPL_THEMES, breaks = 100, xlab = "CDC SVI", main = NA)
+RPL_themes_his <- hist(cdcFul$RPL_THEMES, breaks = 100) #, xlab = "CDC SVI", main = NA)
 ```
 
 ```{r FactorAnalysisAssumpitons}
@@ -84,9 +84,17 @@ names(cdcFAtract)[length(names(cdcFAtract))] <- paste("FULL","PA1",sep = "_")
 cor.test(scoresFA,cdcFul$RPL_THEMES, method = "pearson")
 
 scoresScalled <- scale0_1(scoresFA)
+FA_hist <- hist(scoresScalled,breaks = 100)
+```
 
+```{r histss}
 #pretty picture
-hist(scoresScalled,breaks = 100)
+
+plot(FA_hist, col=rgb(0,0,1,1/4), xlab = NA, main = NA)  # first histogram
+plot(RPL_themes_his, col=rgb(1,0,0,1/4), add=T, main = NA)  # second
+legend("topright",title = "Datasets",legend = c("SVI currently calculated by CDC", "SVI calculated by FA, scalled from 0-1 for comparison"), 
+        fill = c(rgb(1,0,0,1/4), rgb(0,0,1,1/4)), cex = .6, 
+       box.lty = 2)
 ```
 
 

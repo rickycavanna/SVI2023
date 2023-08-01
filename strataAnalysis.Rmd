@@ -34,6 +34,18 @@ if(withFIPS == F){
 }
 ```
 
+```{r save_vars}
+savePath <- "C:/Users/Ecava/OneDrive/Desktop/research/Graphics"
+ptScale <- 1
+ptWidth <- 10
+xtextLG <- 10
+ytextLG <- 7
+xtextSM <- 10
+ytextSM <- 1
+sizeSM <- 4
+sizeLG <- 10
+```
+
 ```{r fxnBuil, include=F}
 KMO_By_Component <- function(data,colNam){
   uneek <- unique(data[[colNam]])  #creats list to iterate thru
@@ -43,7 +55,7 @@ KMO_By_Component <- function(data,colNam){
     # makes the sub goup for each
     subCat <- filter(data,get(colNam) == i)
     # extracts the cols we are looking at
-    subMatrix <- subCat[,5:21]
+    subMatrix <- subCat[,6:21]
 
     # KMO test
     cdcCorMatrix <- cor(subMatrix)
@@ -61,6 +73,7 @@ FA_By_Component <- function(data,colNam, colls){
   tractFA <- c() 
   uniqnessFA <- c()
   loadingsFA <- c()
+  weightsFA <- c()
 
   for(i in uneek){
     # makes the sub group for each
@@ -87,6 +100,7 @@ FA_By_Component <- function(data,colNam, colls){
     
     uniqnessFA <- bind_rows(uniqnessFA, FA$uniquenesses)
     loadingsFA <- bind_rows(loadingsFA, FA$loadings[,1])
+    weightsFA  <- bind_rows(weightsFA, FA$weights[,1])
 
   }
   perVal <- cbind(uneek,perVar)
@@ -102,7 +116,11 @@ FA_By_Component <- function(data,colNam, colls){
   colnames(loadingsOfFA) <- c(colNam,colnames(loadingsFA))
   #retruns 'loadings' for each component and the strata
   
-  return(list(percentVal = perVal,Strat_FA = tractFA, uniqness_by_var = uniqnessOfFA, loadings_by_var = loadingsOfFA))
+  weightsOfFA <- cbind(uneek,weightsFA)
+  colnames(weightsOfFA) <- c(colNam,colnames(weightsFA))
+  #retruns 'loadings' for each component and the strata
+  
+  return(list(percentVal = perVal,Strat_FA = tractFA, uniqness_by_var = uniqnessOfFA, loadings_by_var = loadingsOfFA, weights_by_var = weightsOfFA))
 }
 
 Histo_By_Strat <- function(data,colNam,colOrig,colStrat){
@@ -172,13 +190,50 @@ top_cownt <- function(data,colOrig,colStrat){
 
 #scales from 0-1
 scale0_1 <- function(x){(x-min(x))/(max(x)-min(x))}
+
+#applies groupings
+groupIt <- function(dataa,col){
+dataa$grp <- ifelse(dataa[,col] %in% c("EP_POV150","EP_UNEMP","EP_NOHSDP","EP_UNINSUR","EP_HBURD"),"Socioeconomic Status",
+  ifelse(dataa[,col] %in% c("EP_AGE65","EP_AGE17","EP_DISABL","EP_SNGPNT","EP_LIMENG"),"Household Characteristics",
+  ifelse(dataa[,col] == "EP_MINRTY","Racial & Ethnic Minority Status",
+  ifelse(dataa[,col] %in% c("EP_MUNIT","EP_MOBILE","EP_CROWD","EP_NOVEH","EP_GROUPQ"),"Housing Type & Transportation",0))))
+  #dataa <- rbind(dataa,grp)
+  return(dataa)
+}
+
+#renames all the columns instead of changeing the labels
+re_lableIt <- function(dataa,col){
+  dataa$names <- ifelse(dataa[,col] == "EP_POV150","Below 150% poverty",
+  ifelse(dataa[,col] == "EP_UNEMP"  , "Unemployed",
+  ifelse(dataa[,col] == "EP_NOHSDP" , "Housing Cost Burden",
+  ifelse(dataa[,col] == "EP_UNINSUR", "No HS Diploma",
+  ifelse(dataa[,col] == "EP_HBURD"  , "No Health Insurance",
+  ifelse(dataa[,col] == "EP_AGE65"  , "Aged 65 or older ",
+  ifelse(dataa[,col] == "EP_AGE17"  , "Aged 17 and younger",
+  ifelse(dataa[,col] == "EP_DISABL" , "Civilian with a disability",
+  ifelse(dataa[,col] == "EP_SNGPNT" , "Single-parent households",
+  ifelse(dataa[,col] == "EP_LIMENG" , "English language proficiency",
+  ifelse(dataa[,col] == "EP_MINRTY" , "Racial and ethnic minority status",
+  ifelse(dataa[,col] == "EP_MUNIT"  , "Multi-unit Structures",
+  ifelse(dataa[,col] == "EP_MOBILE" , "Mobile Homes",
+  ifelse(dataa[,col] == "EP_CROWD"  , "Crowding",
+  ifelse(dataa[,col] == "EP_NOVEH"  , "No Vehicle",
+  ifelse(dataa[,col] == "EP_GROUPQ" , "Group Quarters",NA))))))))))))))))
+  return(dataa)
+}
+
+saveAs <- function(filename,ptHeight){
+  ggsave(filename, plot = last_plot(), device = NULL, path = savePath,
+       scale = ptScale, width = ptWidth, height = ptHeight, units = "in",
+       dpi = 300, limitsize = TRUE)
+}
 ```
 
 
 ```{r ByStrat}
 #does analysis stratified and adds it onto the end of the dataframe
 strat <- "STATE" #sets strata
-byLine <- FA_By_Component(cdcUnik, strat,5:21) #does analysis
+byLine <- FA_By_Component(cdcUnik, strat,6:21) #does analysis
 withStrata <- left_join(cdcFAtract, byLine$Strat_FA, by="FIPS") #adds FA to big dataframe
 #adds name of strata to the last column
 names(withStrata)[length(names(withStrata))] <- paste(strat,"PA1",sep = "_")
@@ -190,6 +245,9 @@ strat <- "STATE" #sets strata
 kmos <- as.data.frame(KMO_By_Component(cdcUnik, strat))
 kmos$KMO <- round(as.numeric(kmos$KMO),4)
 kmos %>%  kable(caption = "Table of KMO stratified by State")
+
+boxplot(kmos$KMO, horizontal = TRUE, col = "lightblue", 
+        main = "KMO Values Stratified by State")
 ```
 
 ```{r prettyPictures}
@@ -200,59 +258,118 @@ Histo_By_Strat(withStrata, "STATE", "RPL_THEMES", "STATE_PA1") #compares state F
 ```
 
 ```{r heat_map_loadings_full}
-FA <- fa(cdcUnik[,5:21], nfactors = 1, fm = "pa", max.iter = 100, rotation = "promax")
+FA <- fa(cdcUnik[,6:21], nfactors = 1, fm = "pa", max.iter = 100, rotation = "promax")
 
 # Transform the matrix in long format
 loadngs <- melt(FA$loadings[,1])
-colnames(loadngs) <- c("load")
+colnames(loadngs) <- c("Loadings")
 
-loadngs$rowss <- colnames(cdcUnik[,5:21])
+loadngs$rowss <- colnames(cdcUnik[,6:21])
+loadngs2 <- groupIt(loadngs,'rowss')
+loadngs3 <- re_lableIt(loadngs2,'rowss')
 
 #plots out 
-ggplot(loadngs, aes(x = 1, y = rowss, fill = load)) +
+ggplot(loadngs3, aes(x = 1, y = names, fill = Loadings)) +
   geom_tile() +
-  coord_flip() + labs(x = "Loadings", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
-  scale_fill_gradient(low = "white", high = "red") +
-  scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
+  facet_grid(~grp,
+             scales = "free_x", 
+             space = 'free_x',
+             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
+  coord_flip() + 
+  labs(x = "States", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = ytextSM),
+        axis.text.x = element_text(size = xtextSM, angle = 45,  hjust = 1),
+        strip.text.x = element_text(angle = 90)) +
+  scale_fill_gradient(low = "white", high = "red")
+
+saveAs("loadings_national.png",sizeSM)
 ```
 
 ```{r heat_map_uniq_full}
 # Transform the matrix in long format
 loadngs <- melt(FA$uniquenesses)
-colnames(loadngs) <- c("load")
+colnames(loadngs) <- c("Uniqueness")
 
-loadngs$rowss <- colnames(cdcUnik[,5:21])
+loadngs$rowss <- colnames(cdcUnik[,6:21])
+loadngs2 <- groupIt(loadngs,'rowss')
+loadngs3 <- re_lableIt(loadngs2,'rowss')
 
 #plots out 
-ggplot(loadngs, aes(x = 1, y = rowss, fill = load)) +
+ggplot(loadngs3, aes(x = 1, y = names, fill = Uniqueness)) +
   geom_tile() +
-  coord_flip() + labs(x = "Uniquness", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
-  scale_fill_gradient(low = "blue", high = "white") +
-  scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
+  facet_grid(~grp,
+             scales = "free_x", 
+             space = 'free_x',
+             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
+  coord_flip() + 
+  labs(x = "States", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = ytextSM),
+        axis.text.x = element_text(size = xtextSM, angle = 45,  hjust = 1),
+        strip.text.x = element_text(angle = 90)) +
+  scale_fill_gradient(low = "blue", high = "white")
+
+saveAs("uniqueness_national.png",sizeSM)
 
 loadingsTable <- c()
 loadingsTable$loadings <- melt(FA$loadings[,1])
 loadingsTable$uniqueness <- melt(FA$uniquenesses)
+loadingsTable$weight <- melt(FA$weights[,1])
 loadingsTable <- as.data.frame(loadingsTable)
-colnames(loadingsTable) <- c("Loadings","Uniqueness")
-loadingsTable %>% kable(caption = "Uniquness by varible on a national level")
+colnames(loadingsTable) <- c("Loadings","Uniqueness", "Weights")
+round(loadingsTable,3) %>% kable(caption = "Uniquness and Weight by varible on a national level")
+```
+
+```{r heat_map_weights_full}
+# Transform the matrix in long format
+loadngs <- melt(FA$weights[,1])
+colnames(loadngs) <- c("Weight")
+
+loadngs$rowss <- colnames(cdcUnik[,6:21])
+loadngs2 <- groupIt(loadngs,'rowss')
+loadngs3 <- re_lableIt(loadngs2,'rowss')
+
+#plots out 
+ggplot(loadngs3, aes(x = 1, y = names, fill = Weight)) +
+  geom_tile() +
+  facet_grid(~grp,
+             scales = "free_x", 
+             space = 'free_x',
+             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
+  coord_flip() + 
+  labs(x = "States", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = ytextSM),
+        axis.text.x = element_text(size = xtextSM, angle = 45,  hjust = 1),
+        strip.text.x = element_text(angle = 90)) +
+  scale_fill_gradient(low = "white", high = "darkgreen")
+
+saveAs("weights_national.png",sizeSM)
 ```
 
 ```{r heat_map_uniquness_bystate}
+#this is the one im working on
+
 # Transform the matrix in long format
 df <- melt(byLine$uniqness_by_var)
-colnames(df) <- c("state", "cols", "value")
+colnames(df) <- c("state", "cols", "Uniqueness")
+
+loadngs2 <- groupIt(df,'cols')
+loadngs3 <- re_lableIt(loadngs2,'cols')
 
 #plots out 
-ggplot(df, aes(x = state, y = cols, fill = value)) +
+ggplot(loadngs3, aes(x = state, y = names, fill = Uniqueness)) +
   geom_tile() +
-  coord_flip() + labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
-  scale_fill_gradient(low = "blue", high = "white") +
-  scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
-  
+  facet_grid(~grp,
+             scales = "free_x", 
+             space = 'free_x',
+             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
+  coord_flip() + 
+  labs(x = "States", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = ytextLG),
+        axis.text.x = element_text(size = xtextLG, angle = 45,  hjust = 1),
+        strip.text.x = element_text(angle = 90)) +
+  scale_fill_gradient(low = "blue", high = "white")
+
+saveAs("uniqueness_state.png",sizeLG)
 
 byLine[["uniqness_by_var"]] %>% kable(caption = "Uniquness by varible and stratified by State")
 ```
@@ -260,18 +377,58 @@ byLine[["uniqness_by_var"]] %>% kable(caption = "Uniquness by varible and strati
 ```{r heat_map_uniquness}
 # Transform the matrix in long format
 df <- melt(byLine$loadings_by_var)
-colnames(df) <- c("state", "cols", "value")
+colnames(df) <- c("state", "cols", "Loadings")
 
-#plots out 
-ggplot(df, aes(x = state, y = cols, fill = value)) +
+loadngs2 <- groupIt(df,'cols')
+loadngs3 <- re_lableIt(loadngs2,'cols')
+
+#plots out
+ggplot(loadngs3, aes(x = state, y = names, fill = Loadings)) +
   geom_tile() +
-  coord_flip() + labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = 4),axis.text.x = element_text(angle = 45,  hjust=1)) +
-  scale_fill_gradient(low = "white", high = "red") +
-  scale_y_discrete(labels = c("Total Population","Below 150 of Poverty","Unemployed","Housing Cost Burden","No Highschool Diploma","Uninsured","Over 65","Under 17","Diabled","Single Parent Household","English Proficiency","Minority","Multi-Unit Home","Mobile Home","Crowding Levels","No Vehicle","Group Quarters"))
+  facet_grid(~grp,
+             scales = "free_x", 
+             space = 'free_x',
+             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
+  coord_flip() + 
+  labs(x = "States", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = ytextLG),
+        axis.text.x = element_text(size = xtextLG, angle = 45,  hjust = 1),
+        strip.text.x = element_text(angle = 90)) +
+  scale_fill_gradient(low = "white", high = "red")
+
+saveAs("loadings_state.png",sizeLG)
 
 byLine[["loadings_by_var"]] %>% kable(caption = "Loadings by varible and stratified by State")
 ```
+
+```{r heat_map_weight_bystate}
+#this is the one im working on
+
+# Transform the matrix in long format
+df <- melt(byLine$weights_by_var)
+colnames(df) <- c("state", "cols", "Weights")
+
+loadngs2 <- groupIt(df,'cols')
+loadngs3 <- re_lableIt(loadngs2,'cols')
+
+#plots out 
+ggplot(loadngs3, aes(x = state, y = names, fill = Weights)) +
+  geom_tile() +
+  facet_grid(~grp,
+             scales = "free_x", 
+             space = 'free_x',
+             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
+  coord_flip() + 
+  labs(x = "States", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = ytextLG),
+        axis.text.x = element_text(size = xtextLG, angle = 45,  hjust = 1),
+        strip.text.x = element_text(angle = 90)) +
+  scale_fill_gradient(low = "white", high = "darkgreen")
+
+saveAs("weights_state.png",sizeLG)
+
+```
+
 
 ```{r reduced_mod, echo=F, eval=F}
 ## i ran it with the reduced model with just a few cols, the result was basically the same
@@ -286,19 +443,17 @@ withStrataRed <- left_join(cdcFAtract, byLine$Strat_FA, by="FIPS") #adds FA to b
 #adds name of strata to the last column
 names(withStrataRed)[length(names(withStrataRed))] <- paste("HI","PA1",sep = "_")
 
-
 Histo_By_Strat(withStrataRed, "STATE", "RPL_THEMES", "HI_PA1")
 ```
 
 ```{r rankFAs_complete}
-#this compares the national level FA vs the CDC SIV
+#this compares the national level FA vs the CDC SIV  + ggtitle(paste("CDC SVI Ranks x national FA Ranks"))
 ggplot(withStrata, aes(x=rank(RPL_THEMES), y=rank(FULL_PA1))) +
       geom_point(shape=18, color="lightgreen") +
       geom_abline(intercept = 0, slope = 1, color="red") +
       geom_smooth(method=lm, se=T, color="blue4", fill="black") +
-      ggtitle(paste("CDC SVI Ranks x national FA Ranks")) +
-      xlab(paste("CDC SVI complete")) + # for the x axis label
-      ylab(paste("National FA complete")) # for the y axis label
+      xlab(paste("CDC SVI Rank")) + # for the x axis label
+      ylab(paste("National FA Rank")) # for the y axis label
 
 #this compares the stratified state level FA vs the CDC SIV rankings
 stratStateRank <- c()
@@ -310,14 +465,16 @@ for(i in unique(withStrata$STATE)){
   stratStateRank <- as.data.frame(rbind(stratStateRank, cbind(x,y)))
 }
 
+#gets correlation cooefficient
+stateStratCorr <- cor.test(x=stratStateRank$x, y=stratStateRank$y, method = 'spearman')
 
+#ggtitle(paste("CDC SVI Ranks x State FA Ranks stratified by state")) +
 ggplot(stratStateRank, aes(x=x, y= y)) +
       geom_point(shape=18, color="lightgreen") +
       geom_abline(intercept = 0, slope = 1, color="red") +
       geom_smooth(method=lm, se=T, color="blue4", fill="black") +
-      ggtitle(paste("CDC SVI Ranks x State FA Ranks stratified by state")) +
       xlab(paste("CDC SVI Rank")) + # for the x axis label
-      ylab(paste("STATE FA Rank")) # for the y axis label
+      ylab(paste("State FA Rank")) # for the y axis label
 ```
 
 ```{r rankFAstratByState}
@@ -366,7 +523,7 @@ for(i in unique(withStrata$STATE)){
     pctfull <- rbind(pctfull, samectfull)
     }   
 
-pctSharedbyStateAll <- cbind.data.frame(region = region,pct = pct, pctfull = pctfull)
+pctSharedbyStateAll <- cbind.data.frame(region = region,pct = pct*100, pctfull = pctfull*100)
 summary(pctSharedbyStateAll$pct)
 pctSharedbyStateAll %>% kable(caption = "The percentage of overlap of the top 10% between SVI and the FA")
 ```
