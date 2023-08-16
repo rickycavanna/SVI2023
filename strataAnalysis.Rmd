@@ -18,6 +18,7 @@ library(reshape) #for table transformation with ggplot
 library(maps)
 library(mapproj)
 library(knitr)
+library(ggh4x)
 ```
 
 ```{r getData, include=F}
@@ -227,6 +228,34 @@ saveAs <- function(filename,ptHeight){
        scale = ptScale, width = ptWidth, height = ptHeight, units = "in",
        dpi = 300, limitsize = TRUE)
 }
+
+heatMapPlot <- function(dataa, aess, colorss, xtext, ytext){
+  ggplot(loadngs3, aess) +
+  geom_tile(width=1.1, height=.92) +
+  facet_grid(level~grp,
+             scales = "free", 
+             space = 'free',
+             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
+  #coord_flip() + 
+  labs(x = "States", y =  "Parameters from Census") +
+  theme(axis.text.y = element_text(size = ytext),
+        axis.text.x = element_text(size = xtext, angle = 45,  hjust = 1),
+        strip.text.x = element_text(angle = 90),
+        strip.text.y = element_blank()) + colorss
+}
+
+addState <- function(tempdf,namecol){
+  tempdf$state <- " National"
+  tempdf$cols <- rownames(tempdf)
+  # tempEmpty <- c()
+  # tempEmpty$value <- rep(-1,16)
+  # tempEmpty$state <- rep("_",16)
+  # tempEmpty$cols <- rownames(tempdf)
+  # tempdf <- rbind(tempdf,tempEmpty)
+  colnames(tempdf)[colnames(tempdf)=="value"] = namecol
+  return(tempdf)
+}
+
 ```
 
 
@@ -265,22 +294,16 @@ loadngs <- melt(FA$loadings[,1])
 colnames(loadngs) <- c("Loadings")
 
 loadngs$rowss <- colnames(cdcUnik[,6:21])
+loadngs$level <- "1"
 loadngs2 <- groupIt(loadngs,'rowss')
 loadngs3 <- re_lableIt(loadngs2,'rowss')
 
 #plots out 
-ggplot(loadngs3, aes(x = 1, y = names, fill = Loadings)) +
-  geom_tile() +
-  facet_grid(~grp,
-             scales = "free_x", 
-             space = 'free_x',
-             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
-  coord_flip() + 
-  labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = ytextSM),
-        axis.text.x = element_text(size = xtextSM, angle = 45,  hjust = 1),
-        strip.text.x = element_text(angle = 90)) +
-  scale_fill_gradient(low = "white", high = "red")
+heatMapPlot(dataa = loadngs3,
+            aess = aes(y = 1, x = names, fill = Loadings),
+            colorss = scale_fill_gradient(low = "white", high = "red"),
+            xtext = xtextSM,
+            ytext = ytextSM)
 
 saveAs("loadings_national.png",sizeSM)
 ```
@@ -291,22 +314,16 @@ loadngs <- melt(FA$uniquenesses)
 colnames(loadngs) <- c("Uniqueness")
 
 loadngs$rowss <- colnames(cdcUnik[,6:21])
+loadngs$level <- "1"
 loadngs2 <- groupIt(loadngs,'rowss')
 loadngs3 <- re_lableIt(loadngs2,'rowss')
 
 #plots out 
-ggplot(loadngs3, aes(x = 1, y = names, fill = Uniqueness)) +
-  geom_tile() +
-  facet_grid(~grp,
-             scales = "free_x", 
-             space = 'free_x',
-             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
-  coord_flip() + 
-  labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = ytextSM),
-        axis.text.x = element_text(size = xtextSM, angle = 45,  hjust = 1),
-        strip.text.x = element_text(angle = 90)) +
-  scale_fill_gradient(low = "blue", high = "white")
+heatMapPlot(dataa = loadngs3,
+            aess = aes(y = 1, x = names, fill = Uniqueness),
+            colorss = scale_fill_gradient(low = "blue", high = "white"),
+            xtext = xtextSM,
+            ytext = ytextSM)
 
 saveAs("uniqueness_national.png",sizeSM)
 
@@ -325,22 +342,16 @@ loadngs <- melt(FA$weights[,1])
 colnames(loadngs) <- c("Weight")
 
 loadngs$rowss <- colnames(cdcUnik[,6:21])
+loadngs$level <- "1"
 loadngs2 <- groupIt(loadngs,'rowss')
 loadngs3 <- re_lableIt(loadngs2,'rowss')
 
 #plots out 
-ggplot(loadngs3, aes(x = 1, y = names, fill = Weight)) +
-  geom_tile() +
-  facet_grid(~grp,
-             scales = "free_x", 
-             space = 'free_x',
-             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
-  coord_flip() + 
-  labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = ytextSM),
-        axis.text.x = element_text(size = xtextSM, angle = 45,  hjust = 1),
-        strip.text.x = element_text(angle = 90)) +
-  scale_fill_gradient(low = "white", high = "darkgreen")
+heatMapPlot(dataa = loadngs3,
+            aess = aes(y = 1, x = names, fill = Weight),
+            colorss = scale_fill_gradient(low = "white", high = "darkgreen"),
+            xtext = xtextSM,
+            ytext = ytextSM)
 
 saveAs("weights_national.png",sizeSM)
 ```
@@ -352,49 +363,50 @@ saveAs("weights_national.png",sizeSM)
 df <- melt(byLine$uniqness_by_var)
 colnames(df) <- c("state", "cols", "Uniqueness")
 
+#gets national level stats
+nationalINFO <- addState(melt(FA$uniquenesses),"Uniqueness")
+nationalINFO <- nationalINFO[, c("state", "cols", "Uniqueness")]
+nationalINFO$level <- "1"
+df$level <- "0"
+df <- rbind(df,nationalINFO)
+
 loadngs2 <- groupIt(df,'cols')
 loadngs3 <- re_lableIt(loadngs2,'cols')
 
 #plots out 
-ggplot(loadngs3, aes(x = state, y = names, fill = Uniqueness)) +
-  geom_tile() +
-  facet_grid(~grp,
-             scales = "free_x", 
-             space = 'free_x',
-             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
-  coord_flip() + 
-  labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = ytextLG),
-        axis.text.x = element_text(size = xtextLG, angle = 45,  hjust = 1),
-        strip.text.x = element_text(angle = 90)) +
-  scale_fill_gradient(low = "blue", high = "white")
+heatMapPlot(dataa = loadngs3,
+            aess = aes(y = state, x = names, fill = Uniqueness),
+            colorss = scale_fill_gradient(low = "blue", high = "white"),
+            xtext = xtextLG,
+            ytext = ytextLG)
 
 saveAs("uniqueness_state.png",sizeLG)
 
 byLine[["uniqness_by_var"]] %>% kable(caption = "Uniquness by varible and stratified by State")
 ```
 
-```{r heat_map_uniquness}
+```{r heat_map_loadings_bystate}
 # Transform the matrix in long format
 df <- melt(byLine$loadings_by_var)
 colnames(df) <- c("state", "cols", "Loadings")
+
+#gets national level stats
+nationalINFO <- addState(melt(FA$loadings[,1]),"Loadings")
+nationalINFO <- nationalINFO[, c("state", "cols", "Loadings")]
+nationalINFO$level <- "1"
+df$level <- "0"
+df <- rbind(df,nationalINFO)
 
 loadngs2 <- groupIt(df,'cols')
 loadngs3 <- re_lableIt(loadngs2,'cols')
 
 #plots out
-ggplot(loadngs3, aes(x = state, y = names, fill = Loadings)) +
-  geom_tile() +
-  facet_grid(~grp,
-             scales = "free_x", 
-             space = 'free_x',
-             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
-  coord_flip() + 
-  labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = ytextLG),
-        axis.text.x = element_text(size = xtextLG, angle = 45,  hjust = 1),
-        strip.text.x = element_text(angle = 90)) +
-  scale_fill_gradient(low = "white", high = "red")
+
+heatMapPlot(dataa = loadngs3,
+            aess = aes(y = state, x = names, fill = Loadings),
+            colorss = scale_fill_gradient(low = "white", high = "red"),
+            xtext = xtextLG,
+            ytext = ytextLG)
 
 saveAs("loadings_state.png",sizeLG)
 
@@ -408,24 +420,26 @@ byLine[["loadings_by_var"]] %>% kable(caption = "Loadings by varible and stratif
 df <- melt(byLine$weights_by_var)
 colnames(df) <- c("state", "cols", "Weights")
 
+#gets national level stats
+nationalINFO <- addState(melt(FA$weights[,1]),"Weights")
+nationalINFO <- nationalINFO[, c("state", "cols", "Weights")]
+nationalINFO$level <- "1"
+df$level <- "0"
+df <- rbind(df,nationalINFO)
+
 loadngs2 <- groupIt(df,'cols')
 loadngs3 <- re_lableIt(loadngs2,'cols')
 
 #plots out 
-ggplot(loadngs3, aes(x = state, y = names, fill = Weights)) +
-  geom_tile() +
-  facet_grid(~grp,
-             scales = "free_x", 
-             space = 'free_x',
-             labeller=label_wrap_gen(width = 20, multi_line = TRUE)) +
-  coord_flip() + 
-  labs(x = "States", y =  "Parameters from Census") +
-  theme(axis.text.y = element_text(size = ytextLG),
-        axis.text.x = element_text(size = xtextLG, angle = 45,  hjust = 1),
-        strip.text.x = element_text(angle = 90)) +
-  scale_fill_gradient(low = "white", high = "darkgreen")
+heatMapPlot(dataa = loadngs3,
+            aess = aes(y = state, x = names, fill = Weights),
+            colorss = scale_fill_gradient(low = "white", high = "darkgreen"),
+            xtext = xtextLG,
+            ytext = ytextLG)
 
 saveAs("weights_state.png",sizeLG)
+
+write.csv(loadingsTable,paste(savePath,"loadings_table.csv",sep = '/'))
 
 ```
 
