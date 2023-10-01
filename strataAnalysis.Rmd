@@ -19,6 +19,7 @@ library(maps)
 library(mapproj)
 library(knitr)
 library(ggh4x)
+library(usmap) #for mapping try #2
 ```
 
 ```{r getData, include=F}
@@ -207,8 +208,8 @@ re_lableIt <- function(dataa,col){
   dataa$names <- ifelse(dataa[,col] == "EP_POV150","Below 150% poverty",
   ifelse(dataa[,col] == "EP_UNEMP"  , "Unemployed",
   ifelse(dataa[,col] == "EP_NOHSDP" , "Housing Cost Burden",
-  ifelse(dataa[,col] == "EP_UNINSUR", "No HS Diploma",
-  ifelse(dataa[,col] == "EP_HBURD"  , "No Health Insurance",
+  ifelse(dataa[,col] == "EP_UNINSUR", "No Health Insurance",
+  ifelse(dataa[,col] == "EP_HBURD"  , "No HS Diploma",
   ifelse(dataa[,col] == "EP_AGE65"  , "Aged 65 or older ",
   ifelse(dataa[,col] == "EP_AGE17"  , "Aged 17 and younger",
   ifelse(dataa[,col] == "EP_DISABL" , "Civilian with a disability",
@@ -333,11 +334,14 @@ loadingsTable$uniqueness <- melt(FA$uniquenesses)
 loadingsTable$weight <- melt(FA$weights[,1])
 loadingsTable <- as.data.frame(loadingsTable)
 colnames(loadingsTable) <- c("Loadings","Uniqueness", "Weights")
-round(loadingsTable,3) %>% kable(caption = "Uniquness and Weight by varible on a national level")
+tbl <- round(loadingsTable,3) #%>% kable(caption = "Uniquness and Weight by varible on a national level")
+loadingsTable$names <- rownames(loadingsTable)
+stats <- re_lableIt(loadingsTable,"names")
+write.csv(stats,file = paste(savePath,"stats.csv",sep = '/'))
 ```
 
 ```{r heat_map_weights_full}
-# Transform the matrix in long format
+# Transform the matrix in long 
 loadngs <- melt(FA$weights[,1])
 colnames(loadngs) <- c("Weight")
 
@@ -539,44 +543,36 @@ for(i in unique(withStrata$STATE)){
 
 pctSharedbyStateAll <- cbind.data.frame(region = region,pct = pct*100, pctfull = pctfull*100)
 summary(pctSharedbyStateAll$pct)
-pctSharedbyStateAll %>% kable(caption = "The percentage of overlap of the top 10% between SVI and the FA")
+pctSharedbyStateAll #%>% kable(caption = "The percentage of overlap of the top 10% between SVI and the FA")
+write.csv(pctSharedbyStateAll,paste(savePath,"pctSharedbyStateAll.csv",sep = '/'))
 ```
 
 ```{r mappingCorelation_state_level}
 pctSharedbyState <- pctSharedbyStateAll[,1:2]
-states <- map_data("state")
-colnames(pctSharedbyState) <- c("region","pct")
-pctSharedbyState$region <- tolower(pctSharedbyState$region)
+colnames(pctSharedbyState) <- c("state","pct")
 
-shared.geo <- merge(states,pctSharedbyState,by = "region")
-shared.geo <- shared.geo[order(shared.geo$order),]
-
-ggplot(shared.geo,aes(long, lat))+
-  geom_polygon(aes(group=group, fill= pct))+
-  coord_map() + scale_fill_gradient2(
-    low = "yellow", 
-    mid = "green", 
+plot_usmap(data = pctSharedbyState, values = "pct")+ 
+  scale_fill_continuous(
+    low = "yellow",
     high = "blue",
-    midpoint = 0.5)
+    name = "Percent Shared", label = scales::comma)+
+  labs(title = "Percent Shared Between State level FA and CDC SVI") +
+  theme(legend.position = "right")
 ```
 
 ```{r mappingCorelation_national_level}
 pctSharedbyState <- pctSharedbyStateAll[,c(1,3)]
-states <- map_data("state")
-colnames(pctSharedbyState) <- c("region","pct")
-pctSharedbyState$region <- tolower(pctSharedbyState$region)
+colnames(pctSharedbyState) <- c("state","pct")
 
-shared.geo <- merge(states,pctSharedbyState,by = "region")
-shared.geo <- shared.geo[order(shared.geo$order),]
-
-ggplot(shared.geo,aes(long, lat))+
-  geom_polygon(aes(group=group, fill= pct))+
-  coord_map() + scale_fill_gradient2(
-    low = "yellow", 
-    mid = "green", 
+plot_usmap(data = pctSharedbyState, values = "pct")+ 
+  scale_fill_continuous(
+    low = "yellow",
     high = "blue",
-    midpoint = 0.5)
+    name = "Percent Shared", label = scales::comma)+
+  labs(title = "Percent Shared Between National level FA and CDC SVI") +
+  theme(legend.position = "right")
 ```
+
 ```{r for_Abstract}
 #percent shared across all states:
 top_Precentage(withStrata,"FULL_PA1","RPL_THEMES",10)
