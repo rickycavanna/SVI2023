@@ -553,11 +553,13 @@ colnames(pctSharedbyState) <- c("state","pct")
 
 plot_usmap(data = pctSharedbyState, values = "pct")+ 
   scale_fill_continuous(
-    low = "yellow",
-    high = "blue",
+    low = "white",
+    high = "purple4",
     name = "Percent Shared", label = scales::comma)+
-  labs(title = "Percent Shared Between State level FA and CDC SVI") +
-  theme(legend.position = "right")
+  labs(title = "Percent Shared Between State level FA and CDC SVI in top 10% ranked of each stratified by state") +
+  theme(legend.position = "right",plot.background = element_rect(fill = "white"))
+
+saveAs("statelevelmap.png",sizeLG)
 ```
 
 ```{r mappingCorelation_national_level}
@@ -566,11 +568,13 @@ colnames(pctSharedbyState) <- c("state","pct")
 
 plot_usmap(data = pctSharedbyState, values = "pct")+ 
   scale_fill_continuous(
-    low = "yellow",
-    high = "blue",
+    low = "white",
+    high = "darkgreen",
     name = "Percent Shared", label = scales::comma)+
-  labs(title = "Percent Shared Between National level FA and CDC SVI") +
-  theme(legend.position = "right")
+  labs(title = "Percent Shared Between National level FA and CDC SVI in top 10% ranked of each stratified by state") +
+  theme(legend.position = "right",plot.background = element_rect(fill = "white"))
+
+saveAs("nationllevelmap.png",sizeLG)
 ```
 
 ```{r for_Abstract}
