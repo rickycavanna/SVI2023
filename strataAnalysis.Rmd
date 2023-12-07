@@ -46,6 +46,7 @@ xtextSM <- 10
 ytextSM <- 1
 sizeSM <- 4
 sizeLG <- 10
+inText <- 2
 ```
 
 ```{r fxnBuil, include=F}
@@ -230,9 +231,10 @@ saveAs <- function(filename,ptHeight){
        dpi = 300, limitsize = TRUE)
 }
 
-heatMapPlot <- function(dataa, aess, colorss, xtext, ytext){
+heatMapPlot <- function(dataa, aess, colorss, xtext, ytext, fills){
   ggplot(loadngs3, aess) +
   geom_tile(width=1.1, height=.92) +
+  geom_text(aes(label = round(fills, 2)),size = inText, vjust = 1) +  # Add this line for text labels
   facet_grid(level~grp,
              scales = "free", 
              space = 'free',
@@ -304,7 +306,8 @@ heatMapPlot(dataa = loadngs3,
             aess = aes(y = 1, x = names, fill = Loadings),
             colorss = scale_fill_gradient(low = "white", high = "red"),
             xtext = xtextSM,
-            ytext = ytextSM)
+            ytext = ytextSM,
+            fills = loadngs3$Loadings)
 
 saveAs("loadings_national.png",sizeSM)
 ```
@@ -324,7 +327,8 @@ heatMapPlot(dataa = loadngs3,
             aess = aes(y = 1, x = names, fill = Uniqueness),
             colorss = scale_fill_gradient(low = "blue", high = "white"),
             xtext = xtextSM,
-            ytext = ytextSM)
+            ytext = ytextSM,
+            fills = loadngs3$Uniqueness)
 
 saveAs("uniqueness_national.png",sizeSM)
 
@@ -355,7 +359,8 @@ heatMapPlot(dataa = loadngs3,
             aess = aes(y = 1, x = names, fill = Weight),
             colorss = scale_fill_gradient(low = "white", high = "darkgreen"),
             xtext = xtextSM,
-            ytext = ytextSM)
+            ytext = ytextSM,
+            fills = loadngs3$Weight)
 
 saveAs("weights_national.png",sizeSM)
 ```
@@ -382,7 +387,8 @@ heatMapPlot(dataa = loadngs3,
             aess = aes(y = state, x = names, fill = Uniqueness),
             colorss = scale_fill_gradient(low = "blue", high = "white"),
             xtext = xtextLG,
-            ytext = ytextLG)
+            ytext = ytextLG,
+            fills = loadngs3$Uniqueness)
 
 saveAs("uniqueness_state.png",sizeLG)
 
@@ -410,7 +416,8 @@ heatMapPlot(dataa = loadngs3,
             aess = aes(y = state, x = names, fill = Loadings),
             colorss = scale_fill_gradient(low = "white", high = "red"),
             xtext = xtextLG,
-            ytext = ytextLG)
+            ytext = ytextLG,
+            fills = loadngs3$Loadings)
 
 saveAs("loadings_state.png",sizeLG)
 
@@ -439,7 +446,8 @@ heatMapPlot(dataa = loadngs3,
             aess = aes(y = state, x = names, fill = Weights),
             colorss = scale_fill_gradient(low = "white", high = "darkgreen"),
             xtext = xtextLG,
-            ytext = ytextLG)
+            ytext = ytextLG,
+            fills = loadngs3$Weights)
 
 saveAs("weights_state.png",sizeLG)
 
