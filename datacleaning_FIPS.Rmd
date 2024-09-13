@@ -14,6 +14,23 @@ library(tidyverse)
 library(ggplot2)
 
 scale0_1 <- function(x){(x-min(x))/(max(x)-min(x))}
+
+savePath <- "C:/Users/Ecava/OneDrive/Desktop/research/Graphics"
+ptScale <- 1
+ptWidth <- 10
+xtextLG <- 10
+ytextLG <- 7
+xtextSM <- 10
+ytextSM <- 1
+sizeSM <- 4
+sizeLG <- 10
+inText <- 2
+
+saveAs <- function(filename,ptHeight){
+  ggsave(filename, plot = last_plot(), device = NULL, path = savePath,
+       scale = ptScale, width = ptWidth, height = ptHeight, units = "in",
+       dpi = 300, limitsize = TRUE)
+}
 ```
 
 
@@ -92,9 +109,11 @@ FA_hist <- hist(scoresScalled,breaks = 100)
 
 plot(FA_hist, col=rgb(0,0,1,1/4), xlab = NA, main = NA)  # first histogram
 plot(RPL_themes_his, col=rgb(1,0,0,1/4), add=T, main = NA)  # second
-legend("topright",title = "Datasets",legend = c("SVI currently calculated by CDC", "SVI calculated by FA, scalled from 0-1 for comparison"), 
+legend("topright",title = "Datasets",legend = c("SVI currently calculated by CDC", "SVI calculated by FA, scaled from 0-1 for comparison"), 
         fill = c(rgb(1,0,0,1/4), rgb(0,0,1,1/4)), cex = .6, 
        box.lty = 2)
+
+saveAs("test.png",sizeSM)
 ```
 
 
