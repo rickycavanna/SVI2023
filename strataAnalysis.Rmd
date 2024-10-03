@@ -366,8 +366,6 @@ saveAs("weights_national.png",sizeSM)
 ```
 
 ```{r heat_map_uniquness_bystate}
-#this is the one im working on
-
 # Transform the matrix in long format
 df <- melt(byLine$uniqness_by_var)
 colnames(df) <- c("state", "cols", "Uniqueness")
@@ -381,6 +379,12 @@ df <- rbind(df,nationalINFO)
 
 loadngs2 <- groupIt(df,'cols')
 loadngs3 <- re_lableIt(loadngs2,'cols')
+
+# Sort the unique state names alphabetically
+sorted_states <- sort(unique(loadngs3$state), decreasing = T)
+
+# Reapply the factor order to loadngs3
+loadngs3$state <- factor(loadngs3$state, levels = sorted_states)
 
 #plots out 
 heatMapPlot(dataa = loadngs3,
@@ -410,8 +414,13 @@ df <- rbind(df,nationalINFO)
 loadngs2 <- groupIt(df,'cols')
 loadngs3 <- re_lableIt(loadngs2,'cols')
 
-#plots out
+# Sort the unique state names alphabetically
+sorted_states <- sort(unique(loadngs3$state), decreasing = T)
 
+# Reapply the factor order to loadngs3
+loadngs3$state <- factor(loadngs3$state, levels = sorted_states)
+
+#plots out
 heatMapPlot(dataa = loadngs3,
             aess = aes(y = state, x = names, fill = Loadings),
             colorss = scale_fill_gradient(low = "white", high = "red"),
@@ -440,6 +449,12 @@ df <- rbind(df,nationalINFO)
 
 loadngs2 <- groupIt(df,'cols')
 loadngs3 <- re_lableIt(loadngs2,'cols')
+
+# Sort the unique state names alphabetically
+sorted_states <- sort(unique(loadngs3$state), decreasing = T)
+
+# Reapply the factor order to loadngs3
+loadngs3$state <- factor(loadngs3$state, levels = sorted_states)
 
 #plots out 
 heatMapPlot(dataa = loadngs3,

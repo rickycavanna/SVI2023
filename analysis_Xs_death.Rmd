@@ -1,0 +1,135 @@
+---
+title: "compare to excess mortality"
+author: "Eric Cavanna"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r starts, include=F}
+start.time <- Sys.time()
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+#scales from 0-1
+scale0_1 <- function(x){(x-min(x))/(max(x)-min(x))}
+
+#fuction that merges many to many
+#for each item in DF1 (longgest), finds in DF2 (shorter)
+##merges
+##binds this onto a new DF3
+#returns DF3
+
+merge_many2many <- function(df1, df2, by1, by2){
+    df_return <- c()
+    #sets colnames to the same thing
+    colnames(df2)[colnames(df2) == by2] <- by1
+    
+    #for each row in big, looks in small DF and merges
+    for(r in 1:nrow(df1)){
+      temp_df1 <- df1[r,]
+      temp_df2 <- df2 %>% filter(df2[,by1] == temp_df1[,by1])
+      df_return <- rbind(df_return,merge(temp_df1,temp_df2,by1))}
+    
+    #returns the DF
+    return(df_return)
+}
+```
+
+```{r importss}
+withStrata <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/withStrata.csv", header = TRUE)
+withStrata$countyFIPS <- as.integer(withStrata$FIPS/1000000)
+
+#keeps only relvent column
+SVIonly <- withStrata[,c("FIPS",
+                         "countyFIPS",
+                         "COUNTY",
+                         "RPL_THEMES",
+                         "FULL_PA1",
+                         "STATE_PA1",
+                         "E_TOTPOP")]
+
+xs_mortality <- read.csv("C:/Users/Ecava/OneDrive/Desktop/research/Xs_mortality_data/estimatesMonthly.csv", header = TRUE)
+
+#slim down dataframe
+xs_mortality <- xs_mortality %>% select(c("year", 
+                                          "month", 
+                                          "FIPSCode", 
+                                          "relExcDeathsMean", 
+                                          "relExcDeathsMed"))
+```
+
+```{r find_weight}
+#sum by countyFips
+popByCounty <- SVIonly %>% group_by(countyFIPS) %>% summarise(countyPOP = sum(E_TOTPOP))
+
+SVIonly <- merge(x=SVIonly,y=popByCounty, by="countyFIPS", all.x=TRUE)
+#creats weight 
+SVIonly$weight <- SVIonly$E_TOTPOP/SVIonly$countyPOP
+
+#creates SVI adjust for population weight
+SVIonly$RPL_THEMES_ADJ <- SVIonly$RPL_THEMES*SVIonly$weight
+SVIonly$FULL_PA1_ADJ <- SVIonly$FULL_PA1*SVIonly$weight
+SVIonly$STATE_PA1_ADJ <- SVIonly$STATE_PA1*SVIonly$weight
+
+#summarize the weighted svi's
+countySVI <- SVIonly %>% group_by(countyFIPS) %>% 
+                    summarise(sum_RPL = sum(RPL_THEMES_ADJ),
+                              sum_FULL_PA1 = sum(FULL_PA1_ADJ),
+                              sum_STATE_PA1 = sum(STATE_PA1_ADJ))
+
+#adds population to each county
+countySVI <- merge(countySVI,popByCounty, by = "countyFIPS")
+rm(popByCounty) #removes this data set for cleanliness
+```
+
+```{r merge_THIS_IS_SLOW_AF}
+#merge the summarized SVIs
+newDF <- merge_many2many(xs_mortality,countySVI,"FIPSCode","countyFIPS")
+```
+
+```{r remove_inf}
+xs_med <- newDF[is.finite(newDF$relExcDeathsMed),]
+xs_med <- xs_med[!is.na(xs_med$relExcDeathsMed),]
+sum(is.na(xs_med$sum_FULL_PA1))
+```
+
+
+
+```{r pictures}
+hist(xs_med$sum_FULL_PA1, 100)
+hist(xs_med$relExcDeathsMed, 100)
+
+ggplot(xs_med, aes(x=sum_FULL_PA1, y = relExcDeathsMed, color = factor(year))) +
+      geom_point(shape=18) +
+      geom_smooth(aes(group=factor(year)),method=lm, se=T)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r endTime}
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+```
